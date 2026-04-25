@@ -1,0 +1,80 @@
+/* Cyber Space Neon Theme */
+.root {
+    -fx-base: #000000;
+    -fx-background: #000000;
+    -fx-control-inner-background: #0b0e14;
+    -fx-accent: #00f2ff;
+    -fx-default-button: #00f2ff;
+}
+
+.label {
+    -fx-text-fill: #00f2ff;
+    -fx-font-family: "Segoe UI Semibold", "Consolas";
+}
+
+.text-field, .combo-box, .list-view, .text-area {
+    -fx-background-color: #0b0e14;
+    -fx-text-fill: white;
+    -fx-prompt-text-fill: #888888;
+    -fx-border-color: #333333;
+    -fx-border-width: 1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.text-field:focused, .combo-box:focused {
+    -fx-border-color: #00f2ff;
+}
+
+.button {
+    -fx-background-color: transparent;
+    -fx-border-color: #00f2ff;
+    -fx-border-width: 1.5;
+    -fx-text-fill: #00f2ff;
+    -fx-font-weight: bold;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #00f2ff22;
+}
+
+.button:pressed {
+    -fx-background-color: #00f2ff;
+    -fx-text-fill: black;
+}
+
+.blue-button {
+    -fx-background-color: #00f2ff;
+    -fx-text-fill: black;
+    -fx-border-color: transparent;
+}
+
+.blue-button:hover {
+    -fx-background-color: #aaffff;
+}
+
+.speed-button-active {
+    -fx-background-color: #00f2ff;
+    -fx-text-fill: black;
+    -fx-border-color: #00f2ff;
+    -fx-border-width: 1.5;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.separator *.line {
+    -fx-border-color: #333333;
+}
+
+.list-cell {
+    -fx-background-color: #0b0e14;
+    -fx-text-fill: #cccccc;
+}
+
+.list-cell:selected {
+    -fx-background-color: #00f2ff;
+    -fx-text-fill: black;
+}

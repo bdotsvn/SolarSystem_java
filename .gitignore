@@ -1,0 +1,7 @@
+bin/
+*.class
+.DS_Store
+.idea/
+.vscode/
+.gemini/
+*.log
