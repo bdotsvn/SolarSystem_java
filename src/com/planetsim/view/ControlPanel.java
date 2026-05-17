@@ -17,7 +17,7 @@ public class ControlPanel extends VBox {
     private Button btnAddSat, btnDeleteSat, btnRoute, btnResetView;
     private Button[] speedButtons;
     private ComboBox<Satellite> sourceCombo, destCombo;
-    private TextField txtName, txtAlt, txtLon, txtLat;
+    private TextField txtName, txtAlt, txtLon, txtLat, txtSignalRange;
     private TextArea logArea;
 
     public ControlPanel() {
@@ -64,6 +64,7 @@ public class ControlPanel extends VBox {
         txtAlt = new TextField(); txtAlt.setPromptText("Độ cao (km)");
         txtLon = new TextField(); txtLon.setPromptText("Kinh độ (0-360)");
         txtLat = new TextField(); txtLat.setPromptText("Vĩ độ (-90..90)");
+        txtSignalRange = new TextField(); txtSignalRange.setPromptText("Tầm sóng (km)");
 
         // 3. Routing Section
         Label lblRoute = new Label("ĐỊNH TUYẾN TIN NHẮN");
@@ -89,7 +90,7 @@ public class ControlPanel extends VBox {
             lblPlanet, planetCombo, btnResetView, new Separator(),
             lblSats, satelliteList,
             new Label("Thông số vệ tinh mới:") {{ setStyle("-fx-text-fill: #888888;"); }},
-            txtName, txtAlt, txtLon, txtLat,
+            txtName, txtAlt, txtLon, txtLat, txtSignalRange,
             btnAddSat, btnDeleteSat, new Separator(),
             lblRoute, sourceCombo, destCombo, btnRoute,
             new Label("Kết quả:") {{ setStyle("-fx-text-fill: #888888;"); }}, logArea
@@ -109,6 +110,7 @@ public class ControlPanel extends VBox {
     public TextField getTxtAlt() { return txtAlt; }
     public TextField getTxtLon() { return txtLon; }
     public TextField getTxtLat() { return txtLat; }
+    public TextField getTxtSignalRange() { return txtSignalRange; }
     public void appendLog(String text) { logArea.appendText(text + "\n"); }
     public void clearLog() { logArea.clear(); }
 }

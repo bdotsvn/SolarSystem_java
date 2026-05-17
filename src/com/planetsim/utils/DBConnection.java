@@ -5,45 +5,32 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
- * Singleton class for Database Connection using JDBC for SQL Server.
+ * Utility class for Database Connection using JDBC for SQL Server.
  */
 public class DBConnection {
-    // Thông số kết nối mặc định
     private static final String URL = "jdbc:sqlserver://localhost:1433;databaseName=PlanetSim;encrypt=false;trustServerCertificate=true;";
     private static final String USER = "sa";
     private static final String PASS = "123456";
 
-    private static Connection connection = null;
-
     private DBConnection() {}
 
     /**
-     * Trả về kết nối tới database. Nếu chưa có hoặc đã đóng thì tạo mới.
+     * Trả về kết nối mới tới database mỗi khi được gọi.
+     * DAO sử dụng try-with-resources sẽ tự đóng kết nối này.
      */
     public static Connection getConnection() throws SQLException {
         try {
-            if (connection == null || connection.isClosed()) {
-                // Đăng ký driver (Cần file mssql-jdbc.jar trong classpath)
-                Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
-                connection = DriverManager.getConnection(URL, USER, PASS);
-            }
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            return DriverManager.getConnection(URL, USER, PASS);
         } catch (ClassNotFoundException e) {
-            System.err.println("Lỗi: Không tìm thấy JDBC Driver!");
-            e.printStackTrace();
+            throw new SQLException("Lỗi: Không tìm thấy JDBC Driver!", e);
         }
-        return connection;
     }
 
     /**
-     * Đóng kết nối an toàn.
+     * @deprecated Không còn dùng Singleton connection.
      */
     public static void close() {
-        if (connection != null) {
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
+        // No-op
     }
 }

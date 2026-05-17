@@ -23,7 +23,8 @@ public class PlanetView3D {
     private SubScene subScene;
     private PerspectiveCamera camera;
     private Group world; 
-    
+    private Group cameraPivot; // Trục Camera độc lập
+    private final javafx.scene.transform.Translate cameraTranslate = new javafx.scene.transform.Translate(0, 0, -5000);
     private Sphere sun;
     private Map<Integer, Group> planetGroups = new HashMap<>(); // Group contain planet + satellites
     private Map<Integer, Sphere> planetSpheres = new HashMap<>();
@@ -40,6 +41,7 @@ public class PlanetView3D {
 
     private long lastTime = 0;
     private double timeScale = 0.5; // Tốc độ mô phỏng
+    private final javafx.scene.transform.Translate pivotTranslate = new javafx.scene.transform.Translate();
 
     public PlanetView3D(double width, double height) {
         root = new Group();
@@ -49,7 +51,11 @@ public class PlanetView3D {
         camera = new PerspectiveCamera(true);
         camera.setNearClip(0.1);
         camera.setFarClip(100000.0);
-        camera.setTranslateZ(-5000);
+        camera.getTransforms().add(cameraTranslate); // Dùng Translate để điều khiển zoom
+        
+        cameraPivot = new Group();
+        cameraPivot.getChildren().add(camera);
+        root.getChildren().add(cameraPivot); // CameraPivot nằm ngoài world
         
         subScene = new SubScene(root, width, height, true, SceneAntialiasing.BALANCED);
         subScene.setFill(Color.BLACK);
@@ -92,7 +98,8 @@ public class PlanetView3D {
     }
 
     private void initMouseControls() {
-        world.getTransforms().addAll(rotateX, rotateY);
+        // Áp dụng xoay lên CameraPivot thay vì world
+        cameraPivot.getTransforms().addAll(rotateX, rotateY);
         subScene.setOnMousePressed(event -> {
             anchorX = event.getSceneX();
             anchorY = event.getSceneY();
@@ -100,12 +107,16 @@ public class PlanetView3D {
             anchorAngleY = rotateY.getAngle();
         });
         subScene.setOnMouseDragged(event -> {
-            rotateX.setAngle(anchorAngleX - (anchorY - event.getSceneY()));
-            rotateY.setAngle(anchorAngleY + (anchorX - event.getSceneX()));
+            // Phương án 1A: Độ nhạy động theo khoảng cách Camera (Z-depth)
+            double sensitivityFactor = Math.abs(cameraTranslate.getZ()) / 5000.0;
+            if (sensitivityFactor < 0.1) sensitivityFactor = 0.1;
+            
+            rotateX.setAngle(anchorAngleX - (anchorY - event.getSceneY()) * sensitivityFactor);
+            rotateY.setAngle(anchorAngleY + (anchorX - event.getSceneX()) * sensitivityFactor);
         });
         subScene.setOnScroll(event -> {
             double delta = event.getDeltaY();
-            camera.setTranslateZ(camera.getTranslateZ() + delta * 20); // Tăng tốc độ zoom để quan sát nhanh hơn
+            cameraTranslate.setZ(cameraTranslate.getZ() + delta * 20);
         });
     }
 
@@ -186,7 +197,9 @@ public class PlanetView3D {
         pGroup.getChildren().removeIf(node -> !(node instanceof Sphere && node == planetSpheres.get(planetId)));
         
         for (Satellite s : satellites) {
-            double r = (planetSpheres.get(planetId).getRadius() + s.getAltitudeKm() / 63.71);
+            // Đồng nhất tỷ lệ: 1 unit 3D = 6371 / 40 = 159.275 km
+            double scaleFactor = 6371.0 / 40.0;
+            double r = planetSpheres.get(planetId).getRadius() + (s.getAltitudeKm() / scaleFactor);
             
             // Create Orbit Line
             Group orbitGroup = createOrbitLine(r);
@@ -206,7 +219,9 @@ public class PlanetView3D {
             satSphere.setTranslateZ(pos[2]);
 
             // Add dynamic data
-            double period = PhysicsEngine.calculateOrbitalPeriod(planetSpheres.get(planetId).getRadius() * 63.71, s.getAltitudeKm(), s.getOrbitalVelocity());
+            // Đồng nhất tỷ lệ: planetRadius (3D units) * 159.275 = radius (km)
+            double planetRadiusKm = planetSpheres.get(planetId).getRadius() * 159.275;
+            double period = PhysicsEngine.calculateOrbitalPeriod(planetRadiusKm, s.getAltitudeKm(), s.getOrbitalVelocity());
             satSphere.setUserData(new SatelliteOrbitData(r, s.getLongitude(), s.getLatitude(), period));
 
             pGroup.getChildren().add(satSphere);
@@ -219,8 +234,14 @@ public class PlanetView3D {
 
     private Group createOrbitLine(double orbitRadius) {
         Group g = new Group();
-        int segments = 64;
-        PhongMaterial mat = new PhongMaterial(Color.web("#ffffff", 0.4));
+        // Phương án 2A: Giảm số đoạn segments (64 -> 32)
+        int segments = 32;
+        
+        // Phương án 2B: Làm mờ và mỏng đường quỹ đạo (radius 1.5 -> 0.4, opacity 0.4 -> 0.15)
+        double opacity = 0.15;
+        if (orbitRadius > 2000) opacity = 0.08; // Càng xa mặt trời càng mờ để tránh dày đặc
+        
+        PhongMaterial mat = new PhongMaterial(Color.web("#ffffff", opacity));
         for (int i = 0; i < segments; i++) {
             double a1 = Math.toRadians(i * 360.0 / segments);
             double a2 = Math.toRadians((i + 1) * 360.0 / segments);
@@ -228,7 +249,7 @@ public class PlanetView3D {
             double x2 = orbitRadius * Math.sin(a2), z2 = orbitRadius * Math.cos(a2);
             double len = Math.sqrt((x2-x1)*(x2-x1) + (z2-z1)*(z2-z1));
             double rotAngle = Math.toDegrees(Math.atan2(x2 - x1, z2 - z1));
-            Cylinder seg = new Cylinder(1.5, len);
+            Cylinder seg = new Cylinder(0.4, len);
             seg.setMaterial(mat);
             seg.setTranslateX((x1 + x2) / 2);
             seg.setTranslateZ((z1 + z2) / 2);
@@ -266,7 +287,9 @@ public class PlanetView3D {
                 if (node instanceof Sphere && node != pSphere) {
                     SatelliteOrbitData data = (SatelliteOrbitData) node.getUserData();
                     if (data != null) {
-                        data.currentAngle += (360.0 / data.period) * simDt * 500; // Scaled speed
+                        // Vận tốc góc thực tế dựa trên chu kỳ (độ/giây)
+                        // Tăng thêm hệ số 1000 để vệ tinh bay nhanh rõ rệt hơn so với hành tinh
+                        data.currentAngle += (360.0 / data.period) * simDt * 1000; 
                         double[] pos = PhysicsEngine.getCartesian(data.radius, data.latitude, data.currentAngle);
                         node.setTranslateX(pos[0]);
                         node.setTranslateY(pos[1]);
@@ -275,17 +298,17 @@ public class PlanetView3D {
                 }
             }
 
-            // 4. Pivot Center: dịch world để hành tinh focus nằm ở tâm
+            // 4. Camera Tracking: Nhấc nguyên cái cụm CameraPivot đặt vào tọa độ hành tinh focus
             if (focusedPlanetId == p.getPlanetId()) {
-                world.setTranslateX(-x);
-                world.setTranslateZ(-z);
+                cameraPivot.setTranslateX(x);
+                cameraPivot.setTranslateZ(z);
             }
         }
-        // Nếu không focus hành tinh nào → reset world về trung tâm (Mặt Trời)
+        // Nếu không focus hành tinh nào → CameraPivot quay về trung tâm (Mặt Trời)
         if (focusedPlanetId == -1) {
-            world.setTranslateX(0);
-            world.setTranslateY(0);
-            world.setTranslateZ(0);
+            cameraPivot.setTranslateX(0);
+            cameraPivot.setTranslateY(0);
+            cameraPivot.setTranslateZ(0);
         }
     }
 
@@ -294,15 +317,15 @@ public class PlanetView3D {
     public void focusOnPlanet(int planetId) {
         this.focusedPlanetId = planetId;
         if (planetId != -1) {
-            camera.setTranslateZ(-1500); // Zoom gần để quan sát hành tinh
+            cameraTranslate.setZ(-1500); // Zoom gần để quan sát hành tinh
         }
     }
-
+    
     public void resetView() {
         this.focusedPlanetId = -1;
-        camera.setTranslateZ(-5000); // Zoom ra toàn cảnh
-        camera.setTranslateX(0);
-        camera.setTranslateY(0);
+        cameraTranslate.setZ(-5000); // Zoom ra toàn cảnh
+        cameraTranslate.setX(0);
+        cameraTranslate.setY(0);
     }
 
     public void setTimeScale(double scale) {
